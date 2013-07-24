@@ -1,0 +1,6 @@
+QT 的信号与槽机制介绍
+
+简介： 信号与槽作为 QT 的核心机制在 QT 编程中有着广泛的应用，本文介绍了信号与槽的一些基本概念、元对象工具以及在实际使用过程中应注意的一些问题。
+
+
+链接：http://www.ibm.com/developerworks/cn/linux/guitoolkit/qt/signal-slot/
