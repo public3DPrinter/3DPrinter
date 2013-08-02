@@ -3,5 +3,5 @@ test : serialconn.o
 serialconn.o : serialconn.c serialconn.h
 	@cc -c serialconn.c
 clean :
-	@rm test
+	@rm test *.o
 	@echo [CLEAN]
