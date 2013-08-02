@@ -1,0 +1,150 @@
+1. QT安装配置过程
+2. Layout和Slice代码结构，阐述部分cpp文件的作用
+3. 剖析.b9l和.b9j的文件结构，和参考.b9j文件数据存储，了解每一层图片如何存储在分层后文件中
+4. 原本B9Creator源代码bug，对bug进行了修改
+5. 原来B9Creator代码包括：Layout，Slice，Edit和Print,已经把Layout和Slice中的代码抽出
+
+
+第一章QT安装配置过程军歌补上
+
+
+第二章 Layout和Slice代码结构，阐述部分cpp文件的作用
+   虽然Layout和Slice分成两个文件夹，但是Slice文件夹只放了一个cpp文件，这个slice.cpp和
+Slice.ui绑定的一个处理信号和槽的文件，当Browse文件后点击分层按钮后，首先调用Slice.cpp
+文件里的void B9Slice::Slice()方法，而分层算法和存储图片都是在别的cpp文件。
+
+然后再说一下这些cpp的具体用途和功能：
+1.    b9layout.cpp:处理layout界面中的信号和槽，例如SaveAs()方法是生成.b9l的文件
+   除此之外分层算法也写在这个文件中，也就是说b9slice.cpp中也实例化这个这件并调用了
+   void B9Layout::SliceWorldToJob(QString filename)此方法，这个方法是实现对stl文件的分层。
+
+2.    projectdata.cpp:主要是File Access的文法包括：New(),Open()和Save()，b9layout的SaveAs()
+   会调用到Save()实现，具体的数据存储和得到模型信息都在这个cpp文件中，期中Save()是使用标准输出
+   out存储数据到.b9l中，具体.b9l文件结构可以参考第三章
+
+3.    modeldata.cpp：这个cpp文件是读取stl文件的，注意projectdata.cpp是处理数据的，这个文件初始化
+   了stl文件的信息，包括了记录三角曲面个数等等，Opengl对模型的显示也在此类实现
+
+4.    modelinstance.cpp：载入.b9l的信息
+
+5.    worldView.cpp：当在layout中载入的模型从不同视角观察模型时的更新，重新绘制显示
+
+6.    b9slice.cpp:这个slice.cpp和Slice.ui绑定的一个处理信号和槽的文件
+
+7.    crushbitmap.cpp:对分层后图片信息进行存储
+
+8.    loadingbar.cpp：点击分层按钮后调用进度条
+
+9.    main.cpp：main函数
+
+10.   mainwindow.cpp:主界面的监听事件与处理
+   
+
+
+第三章 剖析.b9l和.b9j的文件结构
+   3.1.首先我将把一个由Wheel.stl生成的.b9l文件内容列举出来：
+   ver 14
+   /home/shelvin/Wheel.b9l
+   startinstancelist
+   /home/shelvin/Wheel.stl
+   0 0 5.05 0 0 0 1 1 1 0
+   endinstancelist
+   resolution 1024 768
+   XYpixelsize 100
+
+       .b9l的内容并不多，第一行记录了LAYOUT_FILE_VERSION，第二行记录的是生成.b9l文件的路径
+   第四行是开始记录模型列表，为什么是list呢？因为在layout界面Add stl的时候可以同时添加多个
+   stl文件，所以对于接下来到endinstancelist前面必须储存不同stl文件的模型信息，就像这样：
+   ver 14
+   /home/shelvin/two.b9l
+   startinstancelist
+   /home/shelvin/cargep.stl
+   0 0 22.25 0 0 0 1 1 1 0
+   /home/shelvin/Wheel.stl
+   2 0 5.05 0 90 0 1 1 1 0
+   endinstancelist
+   resolution 1024 768
+   XYpixelsize 100
+
+       其中每一个模型信息包括原.stl文件的载入路径和.stl模型信息0 0 5.05 0 0 0 1 1 1 0这里包括了10个
+   参数，前三个是模型的X，Y和Z的Position（mm），其次是在X，Y和Z方向的Rotation，再接着是X，Y和Z方向的
+   Scaling factor，最后一个是Flipped参数（不是太清楚这个参数的用途）
+
+   注意：再分层过程中虽然载入的是.b9l的文件，但是实际上程序中还是会重新载入.stl的文件，因为.b9l也记录
+   了.stl文件的路径，.b9l主要是为了记录layout（层）的信息。
+
+
+   3.2.然后就说一下.b9j的文件结构：
+      .b9j的文件存储了每一层的图片信息，通过二进制的写入，对于每一层图片使用一个循环进行写入b9j。
+   *pOut << (quint32)uiWhitePixels << mExtents << mBitarray;
+   如上面的写入语句，pOut是QDataStream，也就是二进制的数据输出流，然后uiWhitePixels，mExtents和
+   mBitarray都是写进去的信息，这条写入同过一个loop实现，每一张图片都是通过这三个变量进行存储的。
+
+   现在我来说一下这三个变量的具体含义和变量声明类型：
+   uiWhitePixels是uint类型（unsight），这个变量记录了有多少个白色像素点，对于每一张图片，有内容
+   的地方用白色像素代表，没有内容的地方用黑色像素代表。
+
+   mExtents是QRect类型，是QT库里面的一个类型，这个变量主要通过setLeft(),setRight()...等等方法储存
+   图片的大小
+
+   mBitarray是QBitArray，也是QT库里面的一个数据类型，QBitArray类提供了一个为序列，存储一系列的0和1。
+   这个变量通过在crushbitmap.cpp的pushBit()这个方法被赋值：
+  // push the image width and height
+	pushBits(pImage->width(),16);
+	pushBits(pImage->height(),16);
+
+
+void CrushedBitMap::pushBits(int iValue, int iBits)
+{
+	//  Pushes the iBits least significant bits of iValue into the bit array
+	//  iBits should always be smaller than 33
+	if (mIndex + iBits > mBitarray.size()) mBitarray.resize(mIndex + iBits);
+    for (int i=iBits-1; i>=0; i--) {
+		mBitarray.setBit(mIndex, iValue & (int)qPow(2.0,i));
+		mIndex++;
+	}
+}
+
+   会看到这个变量调用了自身一个setBit()方法，现在我举一个例子对于这个方法的使用：
+    QBitArray ba(3);    
+     ba.setBit(0, true);    
+     ba.setBit(1, false);    
+     ba.setBit(2, true);  
+   这个ba=[1, 0 , 1]
+
+   所以我猜测这个mBitarray存储了图片的每一个像素的信息。
+
+
+第四章 原本B9Creator源代码bug，对bug进行了修改
+    因为源程序点击分层按钮后无法生成.b9j的文件，后来看了一下代码，是因为代码逻辑没写好，没有调用
+到分层的算法：
+
+    QString filename = CROSS_OS_GetSaveFileName(this, tr("Export Slices"), settings.value("WorkingDir").toString()+ "/" + project->GetJobName(), tr("B9 Job (*.b9j);;SLC (*.slc)"));
+    filename.append(".b9j");
+    qDebug() << "Slic world of filename: " << filename;
+    if(filename.isEmpty())
+	{
+		return;
+	}
+	QString Format = QFileInfo(filename).completeSuffix();
+    qDebug() << "Testing SlceWorld" << Format;
+    if(Format.toLower() == "b9j")
+	{
+		SliceWorldToJob(filename);
+	}
+
+
+  其中filename.append(".b9j");是我加上去的，因为filename只有两种形式，一种是没有后缀名的，一种是有两个后缀名的，
+  例如.b9j.b9j
+  所以不管你的filename如何定义，Format只有两种形式，一种结果是“”(空)，一种结果是“.b9j.b9j”，所以它永远也不会调用
+  到SliceWorldToJob(filename)，也就是分层算法。
+
+
+第五章 Layout和Slice这两部分代码稍后我会放到Github里面
+
+
+
+
+   
+
+
