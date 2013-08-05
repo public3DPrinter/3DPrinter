@@ -1,0 +1,84 @@
+打印流程
+
+PRINTER: Ardunio UNO (for us: Ardunio UNO)
+COMPUTER: computer (for us: pcdunio)
+PU: printer unit
+
+一.指令流程(command set)
+1.PRINTER is powered up and awaits commands from the COMPUTER
+
+2.COMPUTER sends RESET command (R) to the PRINTER and waits
+	CMD 	Parameter	Meaning
+	R	None		Reset (find and reset home positions)
+
+3.PRINTER implements RESET and broadcasts R, Z & S messages
+	Type 	Name		Date Type	Meaning
+	R	Status		int		Reports if machine needs to be reset to locate home positions, 0 = No, 1 = Yes
+	Z	Z position	int		Current Build Table Z Position in Printer Units (PU's)
+	S	Slide Position	int		Slide Position as a percentage of fully open. Note we allow "overslide" values
+
+4.COMPUTER sends INFO (I) command and waits
+	CMD 	Parameter	Meaning
+	I	Projector Y	Set the Projector's Y resolution, persistent
+
+5.PRINTER broadcasts I message
+	Type 	Name		Date Type	Meaning
+	I	PU's Info 	int		Printer's minimum z movement, "Printer Unit", in 100 thousandths of a mm, ie 635 = 0.00635 mm
+
+6.COMPUTER sends BASE layer command (Bxxxx) and waits
+	CMD 	Parameter	Meaning
+	B	PU 		Base xxxx (open shutter, position build table to xxxx)
+
+7.PRINTER implements BASE layer and broadcasts F message when finished
+	Type 	Name		Date Type	Meaning
+	F	cycle		void		exposure
+
+8.For every layer to be created:
+	1.COMPUTER handles projection of layer image for correct exposure time
+	2.COMPUTER sends NEXT layer command (Nxxxx) and waits
+		CMD 	Parameter	Meaning
+		N	z Postion in PU Next xxxx
+	3.PRINTER implements NEXT layer and broadcasts F message when finished
+		Type 	Name		Date Type	Meaning
+		F	cycle		void		exposure
+Repeat for all layers -1
+
+9.COMPUTER sends FINAL layer command (Fxxxx) and waits
+	CMD 	Parameter	Meaning
+	F	z Postion in PU	Final xxxx (close shutter, raise build table to xxxx)
+
+10.PRINTER implements FINAL layer and broadcasts F message when finished
+	Type 	Name		Date Type	Meaning
+	F	cycle		void		exposure	
+
+
+二.代码流程:
+1. MainWindow::doPrint ==> pMW4->print3D()
+2. B9Print::print3D ==> m_pTerminal->rcBasePrint()
+3. B9Terminal::rcBasePrint ==> on_pushButtonPrintBase_clicked()
+----COMPUTER send command to PRINTER 对应指令流程第6步----
+4. B9Terminal::on_pushButtonPrintBase_clicked ==> pPrinterComm->SendCmd("B"+ui->lineEditTgtZPU->text())
+for(通过串口通信实现循环)
+  ----COMPUTER receive PRINTER broadcast 对应指令流程第7步----
+  5. B9PrinterComm::ReadAvailable() ==> case 'F': emit BC_PrintReleaseCycleFinished()
+  6. B9Terminal::onBC_PrintReleaseCycleFinished ==> emit PrintReleaseCycleFinished()
+  ----对应指令流程第8.1步----
+  7. B9Print::exposeTBaseLayer ==> setSlice(m_iCurLayerNumber)
+    设置投影仪显示当前图片
+    7.1. B9Print::setSlice ==> m_pTerminal->rcSetCPJ(m_pCPJ)
+    7.2. B9Terminal::rcSetCPJ ==> emit sendCPJ(pCPJ)
+    7.3. B9Projector::setCPJ ==> drawAll()
+    7.4. B9Projector::drawAll() ==> drawCBM()
+    7.5. B9Projector::drawCBM() ==> mpCPJ->inflateCurrentSlice
+    7.6. CrushedPrintJob::inflateCurrentSlice ==> 
+  曝光一段时间后,向下一层移动
+  8. B9Print::exposeTBaseLayer ==> startExposeTOverLayers()
+  9. B9Print::startExposeTOverLayers ==> exposureOfCurTintLayerFinished()
+  10. B9Print::exposureOfCurTintLayerFinished ==> exposureOfCurTintLayerFinished()
+  11. B9Print::exposureOfTOverLayersFinished ==> m_pTerminal->rcNextPrint(curLayerIndexMM())
+  12. B9Terminal::rcNextPrint ==> on_pushButtonPrintNext_clicked()
+  ----COMPUTER send command to PRINTER 对应指令流程第8.2步----
+  13. B9Terminal::on_pushButtonPrintNext_clicked ==> pPrinterComm->SendCmd("N"+ui->lineEditTgtZPU->text())
+  ----COMPUTER receive PRINTER broadcast 对应指令流程第8.3步----
+  14. B9PrinterComm::ReadAvailable() ==> case 'F': emit BC_PrintReleaseCycleFinished()
+end
