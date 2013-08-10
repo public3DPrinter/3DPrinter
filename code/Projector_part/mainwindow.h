@@ -4,6 +4,7 @@
 #include <QMainWindow>
 #include "crushbitmap.h"
 #include "b9print.h"
+#include "b9terminal.h"
 
 namespace Ui {
 class MainWindow;
@@ -21,6 +22,7 @@ private:
     Ui::MainWindow *ui;
     CrushedPrintJob *m_pCPJ;
     B9Print *pMW4;
+    B9Terminal *pTerminal;
 
 private slots:
     void on_commandPrint_clicked();
