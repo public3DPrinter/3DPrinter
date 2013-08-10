@@ -1,0 +1,26 @@
+唐霖: 
+pcdunio发送指令给ardunio,ardunio做出相应发应.
+	1.pcdunio -> ardunio : B
+	2.ardunio receive command B, control motor run 4 circles
+	3.after motor run 4 circles, ardunio -> pcdunio : F
+	4.pcdunio receive F，pcdunio -> ardunio : N
+	5.ardunio receive command N, control motor run 2 circles
+	6.after motor run 2 circles, ardunio -> pcdunio : S
+	7.pcdunio receive S, stop
+写方法时灵活一点，方便以后command set的改变，pcdunio和ardunio通信时最好能用b9creator代码里面串口通信的库
+
+宋玉浩：
+1. 把code/projector_part这部分代码（分层显示图片的程序）,交叉编译在pcdounio上跑起来
+2. 把b9cretor里面的layout和slice代码提取出来，现在电脑上能运行成功,然后在pcdunio上能跑起来
+
+翁捷：
+1. 尽快把配件拿回来,把零件拼装起来
+2. 修改图纸
+
+陈琢：
+1. 列出pcdunio和ardunio通信暂时需要的指令集
+2. 参考b9creator源码，挑选出最简单的一个版本，把我们软件部分整个框架搭起来，框架要求方便迭代开发,框架大概分为3部分：
+	a.模型的分层
+	b.pcdunio ardunio通信控制电机
+	c.投影仪显示打印图片
+
