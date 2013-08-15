@@ -50,7 +50,6 @@ void MainWindow::on_commandPrint_clicked()
     }
     m_pCPJ->showSupports(true);
     doPrint();
-
 }
 
 void MainWindow::doPrint()
@@ -62,4 +61,3 @@ void MainWindow::doPrint()
     //pMW4->print3D(m_pCPJ, 0, 0, m_pCPJ->getTotalLayers(), m_pPrintPrep->m_iToverMS, m_pPrintPrep->m_iTattachMS, m_pPrintPrep->m_iNumAttach, m_pPrintPrep->m_iLastLayer, m_pPrintPrep->m_bDryRun, m_pPrintPrep->m_bDryRun, m_pPrintPrep->m_bMirrored);
     pMW4->print3D(m_pCPJ,0,0,42,6,50,2,431,true,false,false);
 }
-
