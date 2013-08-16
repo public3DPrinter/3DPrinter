@@ -1,5 +1,9 @@
 code/build-Projector_part-Desktop-Debug/
 code/build-Comm_part-Desktop-Debug/
 
+#For binary file
+*.o
+*.so
+
 # User-specific files
 *.user

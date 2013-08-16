@@ -1,4 +1,5 @@
 #include<stdlib.h>
+#include<stdio.h>
 #include<unistd.h>
 #include<fcntl.h>
 #include<termios.h>
@@ -50,7 +51,7 @@ void communicate_arduino(int fd){
 			flag=0;
 		}
 		int rc = write(fd,send,sizeof(char)*200);
-		if(rc!=-1){
+		if(rc==-1){
 			exit(2);	
 		}
 	}	
