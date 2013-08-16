@@ -4,7 +4,10 @@
 #include "b9printercomm.h"
 #include "qextserialport.h"
 #include "qextserialenumerator.h"
-
+#include <termios.h>
+#include<sys/types.h>
+#include<sys/stat.h>
+#include<fcntl.h>
 B9PrinterComm::B9PrinterComm()
 {
     m_bIsPrinting = false;
@@ -148,9 +151,9 @@ void B9PrinterComm::RefreshCommPortItems()
 bool B9PrinterComm::OpenB9CreatorCommPort(QString sPortName)
 {
     if(m_serialDevice!=NULL) qFatal("Error:  We found an open port handle that should have been deleted!");
+    //char* device = "/dev/ttyACM0";
 
-
-
+    //qDebug() << open(device,O_RDWR | O_NOCTTY | O_NDELAY);;
 
     // Attempt to establish a serial connection with the B9Creator
     m_serialDevice = new QextSerialPort(sPortName, QextSerialPort::EventDriven, this);
@@ -209,11 +212,10 @@ void B9PrinterComm::ReadAvailable() {
         //m_Status.setHomeStatus(B9PrinterStatus::HS_UNKNOWN); // if we are receiving data, we must no longer be seeking Home
         // we'll set the status to HS_FOUND once we recieve a 'X' diff broadcast
     //}
-
     QByteArray ba = m_serialDevice->readAll();  // read block of available raw data
-
+    qDebug() << "receive " << ba.data();
     // We process the raw data one line at a time, keeping in mind they may be spread across multiple blocks.
-    int iCurPos = 0;
+    /*int iCurPos = 0;
     int iLampHrs = -1;
     int iInput = -1;
     char c;
@@ -236,6 +238,7 @@ void B9PrinterComm::ReadAvailable() {
             }
 
             int iCmdID = m_sSerialString.left(1).toUpper().toAscii().at(0);
+            qDebug() << "receive " << iCmdID;
             switch (iCmdID){
             case 'F':
             case 'f':
@@ -356,11 +359,11 @@ void B9PrinterComm::ReadAvailable() {
 
             default:
                 qDebug() <<"WARNING:  IGNORED UNKNOWN CMD:  " << m_sSerialString << "\n";
-                break;*/
+                break;
             }
             m_sSerialString=""; // Line processed, clear it for next line
         }
-    }
+    }*/
 }
 
 void B9PrinterComm::SendCmd(QString sCmd)

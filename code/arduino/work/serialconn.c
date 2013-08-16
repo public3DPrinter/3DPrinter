@@ -50,7 +50,7 @@ void communicate_arduino(int fd){
 			flag=0;
 		}
 		int rc = write(fd,send,sizeof(char)*200);
-		if(rc){
+		if(rc!=-1){
 			exit(2);	
 		}
 	}	

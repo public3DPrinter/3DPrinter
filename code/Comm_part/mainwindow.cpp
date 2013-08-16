@@ -18,5 +18,5 @@ void MainWindow::on_btnConnect_clicked() {
 }
 
 void MainWindow::on_btnSend_clicked() {
-    qDebug() << ui->lineEdit->text();
+    pPrinterComm->SendCmd(ui->lineEdit->text());
 }
