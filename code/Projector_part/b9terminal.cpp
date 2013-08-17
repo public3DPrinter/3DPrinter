@@ -60,11 +60,16 @@ B9Terminal::B9Terminal(QWidget *parent, Qt::WFlags flags) :
     pSettings = new PCycleSettings;
     resetLastSentCycleSettings();
 
+    // Always set up the B9PrinterComm in the Terminal constructor
+    pPrinterComm = new B9PrinterComm;
+
     // Always set up the B9Projector in the Terminal constructor
     m_pDesktop = QApplication::desktop();
     pProjector = new B9Projector();
 
     connect(m_pDesktop, SIGNAL(screenCountChanged(int)),this, SLOT(onScreenCountChanged(int)));
+
+    connect(pPrinterComm, SIGNAL(BC_PrintReleaseCycleFinished()), this, SLOT(onBC_PrintReleaseCycleFinished()));
 }
 
 B9Terminal::~B9Terminal()
@@ -203,6 +208,14 @@ void B9Terminal::rcProjectorPwr(bool bPwrOn){
     //on_pushButtonProjPower_toggled(bPwrOn);
 }
 
+void B9Terminal::rcResetHomePos(){
+    on_pushButtonCmdReset_clicked();
+}
+
+void B9Terminal::rcGotoFillAfterReset(int iFillLevel){
+    m_iFillLevel = iFillLevel;
+}
+
 void B9Terminal::rcSetWarmUpDelay(int iDelayMS)
 {
     //pPrinterComm->setWarmUpDelay(iDelayMS);
@@ -220,12 +233,67 @@ void B9Terminal::rcResetCurrentPositionPU(int iCurPos){
 void B9Terminal::rcBasePrint(double dBaseMM)
 {
     //setTgtAltitudeMM(dBaseMM);
-    //on_pushButtonPrintBase_clicked();
+    on_pushButtonPrintBase_clicked();
+}
 
+void B9Terminal::rcNextPrint(double dNextMM)
+{
+    //setTgtAltitudeMM(dNextMM);
+    on_pushButtonPrintNext_clicked();
 }
 
 void B9Terminal::rcSetCPJ(CrushedPrintJob *pCPJ)
 {
     // Set the pointer to the CMB to be displayed, NULL if blank
     emit sendCPJ(pCPJ);
+}
+
+void B9Terminal::on_pushButtonCmdReset_clicked()
+{
+    //int iTimeoutEstimate = 80000; // 80 seconds (should never take longer than 75 secs from upper limit)
+
+    ui->groupBoxMain->setEnabled(false);
+    ui->lineEditNeedsInit->setText("Seeking");
+    // Remote activation of Reset (Find Home) Motion
+    //m_pResetTimer->start(iTimeoutEstimate);
+    pPrinterComm->SendCmd("R");
+    resetLastSentCycleSettings();
+}
+
+void B9Terminal::onBC_PrintReleaseCycleFinished()
+{
+    //m_pPReleaseCycleTimer->stop();
+    ui->lineEditCycleStatus->setText("Cycle Complete.");
+    ui->pushButtonPrintBase->setEnabled(true);
+    ui->pushButtonPrintNext->setEnabled(true);
+    ui->pushButtonPrintFinal->setEnabled(true);
+    emit PrintReleaseCycleFinished();
+}
+
+void B9Terminal::on_pushButtonPrintBase_clicked()
+{
+    ui->lineEditCycleStatus->setText("Moving to Base...");
+    ui->pushButtonPrintBase->setEnabled(false);
+    ui->pushButtonPrintNext->setEnabled(false);
+    ui->pushButtonPrintFinal->setEnabled(false);
+    //resetLastSentCycleSettings();
+    //SetCycleParameters();
+    //int iTimeout = getEstBaseCycleTime(ui->lineEditCurZPosInPU->text().toInt(), ui->lineEditTgtZPU->text().toInt());
+    //pPrinterComm->SendCmd("B"+ui->lineEditTgtZPU->text());
+    pPrinterComm->SendCmd("B");
+    //m_pPReleaseCycleTimer->start(iTimeout * 2.0); // Timeout after 200% of estimated time required
+}
+
+void B9Terminal::on_pushButtonPrintNext_clicked()
+{
+    ui->lineEditCycleStatus->setText("Cycling to Next...");
+    ui->pushButtonPrintBase->setEnabled(false);
+    ui->pushButtonPrintNext->setEnabled(false);
+    ui->pushButtonPrintFinal->setEnabled(false);
+
+    //SetCycleParameters();
+    //int iTimeout = getEstNextCycleTime(ui->lineEditCurZPosInPU->text().toInt(), ui->lineEditTgtZPU->text().toInt());
+    //pPrinterComm->SendCmd("N"+ui->lineEditTgtZPU->text());
+    pPrinterComm->SendCmd("N");
+    //m_pPReleaseCycleTimer->start(iTimeout * 2.0); // Timeout after 200% of estimated time required
 }

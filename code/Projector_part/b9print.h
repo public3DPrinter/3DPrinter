@@ -42,14 +42,17 @@ private:
     QTime m_vClock;
     double m_dLayerThickness;
 
-    void exposeTBaseLayer();
     void setSlice(int iSlice);
 
     QTimer *testTimer;
     int count;
 
 private slots:
-    void testLoop();
+    //void testLoop();
+    void exposeTBaseLayer();
+    void startExposeTOverLayers();
+    void exposureOfCurTintLayerFinished();
+    void exposureOfTOverLayersFinished();
 };
 
 #endif // B9PRINT_H

@@ -18,14 +18,18 @@ SOURCES += main.cpp\
     b9print.cpp \
     b9terminal.cpp \
     b9projector.cpp \
-    dlgprintprep.cpp
+    dlgprintprep.cpp \
+    b9printercomm.cpp
+
+include(qextserialport-1.2beta2/src/qextserialport.pri)
 
 HEADERS  += mainwindow.h \
     crushbitmap.h \
     b9print.h \
     b9terminal.h \
     b9projector.h \
-    dlgprintprep.h
+    dlgprintprep.h \
+    b9printercomm.h
 
 FORMS    += mainwindow.ui \
     b9print.ui \

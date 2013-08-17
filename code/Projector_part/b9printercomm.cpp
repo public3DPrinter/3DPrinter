@@ -1,9 +1,11 @@
 #include <QtGui/QApplication>
 #include <QProcess>
 #include <QTimer>
+#include "b9terminal.h"
 #include "b9printercomm.h"
 #include "qextserialport.h"
 #include "qextserialenumerator.h"
+
 B9PrinterComm::B9PrinterComm()
 {
     m_bIsPrinting = false;
@@ -147,9 +149,6 @@ void B9PrinterComm::RefreshCommPortItems()
 bool B9PrinterComm::OpenB9CreatorCommPort(QString sPortName)
 {
     if(m_serialDevice!=NULL) qFatal("Error:  We found an open port handle that should have been deleted!");
-    //char* device = "/dev/ttyACM0";
-
-    //qDebug() << open(device,O_RDWR | O_NOCTTY | O_NDELAY);;
 
     // Attempt to establish a serial connection with the B9Creator
     m_serialDevice = new QextSerialPort(sPortName, QextSerialPort::EventDriven, this);
@@ -210,6 +209,11 @@ void B9PrinterComm::ReadAvailable() {
     //}
     QByteArray ba = m_serialDevice->readAll();  // read block of available raw data
     qDebug() << "receive " << ba.data();
+
+    if(QString(ba) == "F") {
+        qDebug() << "-------------------------------";
+        emit BC_PrintReleaseCycleFinished();
+    }
     // We process the raw data one line at a time, keeping in mind they may be spread across multiple blocks.
     /*int iCurPos = 0;
     int iLampHrs = -1;

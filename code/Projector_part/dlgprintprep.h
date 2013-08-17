@@ -16,6 +16,31 @@ public:
     explicit DlgPrintPrep(CrushedPrintJob* pCPJ, B9Terminal* pTerminal, QWidget *parent = 0);
     ~DlgPrintPrep();
     
+private slots:
+    //void on_comboBoxMaterial_currentIndexChanged(const QString &arg1);
+
+    //void on_pushButtonMatCat_clicked();
+
+    //void on_checkBoxMirrored_clicked(bool checked);
+
+    //void on_spinBoxLayersToPrint_valueChanged(int arg1);
+
+    //void on_pushButtonResetPrintAll_clicked();
+
+    void updateTimes();
+
+    void on_pushButtonStep3_clicked();
+
+    void on_checkBoxStep2_clicked(bool checked);
+
+    void on_checkBoxStep1_clicked(bool checked);
+
+    void on_checkBoxStep4_clicked(bool checked);
+
+    void on_checkBoxStep5_clicked(bool checked);
+
+    //void on_pushButtonReleaseCycle_clicked();
+
 private:
     Ui::DlgPrintPrep *ui;
     CrushedPrintJob *m_pCPJ;

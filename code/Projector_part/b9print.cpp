@@ -9,7 +9,8 @@ B9Print::B9Print(B9Terminal *pTerm, QWidget *parent) :
     ui->setupUi(this);
 
     testTimer = new QTimer(this);
-    connect(testTimer, SIGNAL(timeout()), this, SLOT(testLoop()));
+    //connect(testTimer, SIGNAL(timeout()), this, SLOT(testLoop()));
+    connect(m_pTerminal, SIGNAL(PrintReleaseCycleFinished()), this, SLOT(exposeTBaseLayer()));
 }
 
 B9Print::~B9Print()
@@ -74,11 +75,12 @@ void B9Print::print3D(CrushedPrintJob* pCPJ, int iXOff, int iYOff, int iTbase, i
         m_pTerminal->rcBasePrint(-m_pTerminal->getHardZDownMM()); // Dynamic Z Zero, overshoot zero until we are down hard and motor 'skips'
     }
     qDebug() << "end of B9Print::print3D";
+
     count = 0;
-    testTimer->start(2000);
+    //testTimer->start(2000);
 }
 
-void B9Print::testLoop() {
+/*void B9Print::testLoop() {
     testTimer->stop();
     if(count < 30) {
         exposeTBaseLayer();
@@ -87,6 +89,18 @@ void B9Print::testLoop() {
         testTimer->start(2000);
     }
 
+}*/
+
+void B9Print::setSlice(int iSlice)
+{
+    qDebug() << "m_iLastLayer = " << m_iLastLayer;
+    qDebug() << "iSlice = " << iSlice;
+    if(m_iLastLayer<1)
+        m_pTerminal->rcSetCPJ(NULL);
+    else {
+        m_pCPJ->setCurrentSlice(iSlice);
+        m_pTerminal->rcSetCPJ(m_pCPJ);
+    }
 }
 
 void B9Print::exposeTBaseLayer(){
@@ -144,6 +158,7 @@ void B9Print::exposeTBaseLayer(){
         //setProjMessage("(Press'p' to pause, 'A' to ABORT)  " + sTimeUpdate+"  Creating Layer "+QString::number(m_iCurLayerNumber+1)+" of "+QString::number(m_iLastLayer));
     //}
     m_iPrintState = PRINT_EXPOSING;
+    startExposeTOverLayers();
     // set timer
     //int iAdjExposure = m_pTerminal->getLampAdjustedExposureTime(m_iTbase);
     //if(m_iCurLayerNumber<m_iNumAttach) iAdjExposure = m_pTerminal->getLampAdjustedExposureTime(m_iTattach);  //First layers may have different exposure timing
@@ -159,14 +174,92 @@ void B9Print::exposeTBaseLayer(){
     //}
 }
 
-void B9Print::setSlice(int iSlice)
-{
-    qDebug() << "m_iLastLayer = " << m_iLastLayer;
-    qDebug() << "iSlice = " << iSlice;
-    if(m_iLastLayer<1)
-        m_pTerminal->rcSetCPJ(NULL);
-    else {
-        m_pCPJ->setCurrentSlice(iSlice);
-        m_pTerminal->rcSetCPJ(m_pCPJ);
+void B9Print::startExposeTOverLayers(){
+    exposureOfCurTintLayerFinished();
+    /*if(m_iCurLayerNumber==0){exposureOfTOverLayersFinished(); return;} //Skip this on first layer (0)
+
+    m_vClock.start();  //restart for Tover interval pace
+
+    m_iMinimumTintMS = m_vSettings.value("m_iMinimumTintMS",50).toInt(); // We default to 50ms but adjust it upwards when it gets hit.
+    m_iMinimumTintMSWorstCase=m_iMinimumTintMS;
+
+    int iAdjTover = m_pTerminal->getLampAdjustedExposureTime(m_iTover);
+    m_iTintNum = (int)((double)iAdjTover/(double)m_iMinimumTintMS);
+    if(m_iTintNum > 255) m_iTintNum = 255; // maximum number of time intervals we chop Tover into is 256
+
+    m_dTintMS = (double)iAdjTover/(double)m_iTintNum; // The time of each interval in fractional ms, will always be >= m_iMinimumTintMS
+    m_iCurTintIndex = 0;*/
+}
+
+void B9Print::exposureOfCurTintLayerFinished(){
+    exposureOfTOverLayersFinished();
+    // Turn off the pixels at the curent point
+    /*if(m_pTerminal->rcClearTimedPixels((double)m_iCurTintIndex*255.0/(double)m_iTintNum) || m_iCurTintIndex>=m_iTintNum)
+    {
+        exposureOfTOverLayersFinished();  // We're done with Tover
+        m_vSettings.setValue("m_iMinimumTintMS",m_iMinimumTintMSWorstCase);
+        return;
     }
+
+    m_iCurTintIndex ++;
+    int iAdjustedInt = (int)(m_dTintMS * (double)m_iCurTintIndex)-m_vClock.elapsed();
+    if(iAdjustedInt>0){
+        QTimer::singleShot(iAdjustedInt, this, SLOT(exposureOfCurTintLayerFinished()));
+        return;
+    }
+    else
+    {
+        if(m_iCurTintIndex==1)m_iMinimumTintMSWorstCase=m_iMinimumTintMS-iAdjustedInt;
+        exposureOfCurTintLayerFinished(); // If this is getting called, we're taking too long!
+        return;
+    }*/
+}
+
+void B9Print::exposureOfTOverLayersFinished(){
+    m_iCurLayerNumber++;
+    m_pTerminal->rcNextPrint(0);
+    /*if(m_iPrintState==PRINT_NO)return;
+
+    m_pTerminal->rcSetCPJ(NULL); //blank
+    //Cycle to next layer or finish
+    if(m_iPaused==PAUSE_WAIT){
+        m_iPaused=PAUSE_YES;
+        m_pTerminal->rcSTOP();
+        m_pTerminal->rcCloseVat();
+        ui->pushButtonPauseResume->setText("Resume");
+        ui->pushButtonPauseResume->setEnabled(true);
+        ui->pushButtonAbort->setEnabled(true);
+        ui->lineEditLayerCount->setText("Paused.  Manual positioning toggle switches are enabled.");
+        m_pTerminal->rcSetProjMessage(" Paused.  Manual toggle switches are enabled.  Press 'p' when to resume printing, 'A' to abort.");
+        return;
+    }
+
+    if(m_bAbort){
+        // We're done
+        m_pTerminal->rcSetCPJ(NULL); //blank
+        ui->pushButtonAbort->setText("Abort");
+        m_iPrintState = PRINT_ABORT;
+        on_signalAbortPrint();
+        return;
+    }
+    else if(m_iCurLayerNumber==m_iLastLayer-1){
+        // We're done, release and raise
+        ui->pushButtonAbort->setEnabled(false);
+        ui->pushButtonPauseResume->setEnabled(false);
+        m_iPrintState=PRINT_DONE;
+        m_pTerminal->rcFinishPrint(25.4); //Finish at current z position + 25.4 mm, turn Projector Off
+        ui->lineEditLayerCount->setText("Finished!");
+        setProjMessage("Finished!");
+        return;
+    }
+    else
+    {
+        // do next layer
+        m_iCurLayerNumber++;  // set the next layer number
+        m_pTerminal->rcNextPrint(curLayerIndexMM());
+        m_iPrintState = PRINT_RELEASING;
+        ui->lineEditLayerCount->setText("Releasing Layer "+QString::number(m_iCurLayerNumber)+", repositioning to layer "+QString::number(m_iCurLayerNumber+1));
+        QString sTimeUpdate = updateTimes();
+        setProjMessage("(Press'p' to pause, 'A' to ABORT)  " + sTimeUpdate+"  Release and cycle to Layer "+QString::number(m_iCurLayerNumber+1)+" of "+QString::number(m_iLastLayer));
+     }*/
 }
